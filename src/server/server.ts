@@ -3,11 +3,12 @@ import fs from 'fs';
 import path from "path";
 import NoSQLDatabase from "../core/Database";
 import logger from "../core/Logger";
-import { getUptime, getLatestLogFile } from "../core/Utils";
+import { getUptime, getLatestLogFile, cleanOldLogs } from "../core/Utils";
 
-// Initialize app and database
+// Initialize app, database and logs directory
 const app = express();
 const db = new NoSQLDatabase("data");
+const logDir = path.resolve(__dirname, "../../logs");
 
 const PORT = 3000;
 logger.info(`STARTING Port configured on ${PORT}`)
@@ -31,10 +32,11 @@ function handleError(res: express.Response, error: Error, statusCode: number = 5
 }
 
 
+cleanOldLogs(logDir);
+logger.info(`STARTING Cleaned old logs files`)
+
 // Get logs
 app.get("/logs", (req, res) => {
-    const logDir = path.resolve(__dirname, "../../logs");
-
     const latestLogFile = getLatestLogFile(logDir);
 
     if (!latestLogFile) {
@@ -140,9 +142,12 @@ app.delete("/:collection/:id", (req, res) => {
 });
 
 // Server Initialization
-app.listen(PORT, () => logger.info(`STARTED: Server running on port ${PORT}, version ${VERSION}`));
+app.listen(PORT, () => logger.info(`STARTED Server running on port ${PORT}, version ${VERSION}`));
 
 let millisecToMinutes = 1000 * 60;
 setInterval(() => {
     logger.info(`STATUS Server is fine. Uptime : ${getUptime(STARTTIME)}`)
 }, 5 * millisecToMinutes) // put time in minutes
+
+let millisecToDays = 24 * 60 * 60 * 1000;
+setInterval(() => cleanOldLogs(logDir), 1 * millisecToDays);

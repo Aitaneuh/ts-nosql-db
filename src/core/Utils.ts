@@ -42,3 +42,25 @@ export function getLatestLogFile(directory: string): string | null {
         return null;
     }
 }
+
+export function cleanOldLogs(directory: string, days: number = 7) {
+    const now = Date.now();
+    const cutoffTime = now - days * 24 * 60 * 60 * 1000; // Convert days to milliseconds
+
+    try {
+        const files = fs.readdirSync(directory);
+
+        files.forEach(file => {
+            const filePath = path.join(directory, file);
+            const stats = fs.statSync(filePath);
+
+            if (stats.mtime.getTime() < cutoffTime) {
+                fs.unlinkSync(filePath);
+                logger.info(`Deleted old log file: ${file}`);
+            }
+        });
+
+    } catch (error) {
+        logger.error("Error cleaning old logs: " + error);
+    }
+}
