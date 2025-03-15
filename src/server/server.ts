@@ -11,6 +11,9 @@ const VERSION = "1.0";
 
 app.use(express.json());
 
+app.use(express.static("public"));
+
+
 // Function to handle errors more gracefully
 function handleError(res: express.Response, error: Error, statusCode: number = 500) {
     logger.error(error.message);
