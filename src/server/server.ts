@@ -1,13 +1,23 @@
 import express from "express";
+import fs from 'fs';
+import path from "path";
 import NoSQLDatabase from "../core/Database";
 import logger from "../core/Logger";
+import { getUptime, getLatestLogFile } from "../core/Utils";
 
 // Initialize app and database
 const app = express();
 const db = new NoSQLDatabase("data");
 
 const PORT = 3000;
+logger.info(`STARTING Port configured on ${PORT}`)
+
+// to remember when started
+const STARTTIME = Date.now();
+logger.info(`STARTING Start time set to ${STARTTIME}`)
+
 const VERSION = "1.0";
+logger.info(`STARTING using version ${VERSION}`)
 
 app.use(express.json());
 
@@ -19,6 +29,26 @@ function handleError(res: express.Response, error: Error, statusCode: number = 5
     logger.error(error.message);
     res.status(statusCode).json({ error: error.message });
 }
+
+
+// Get logs
+app.get("/logs", (req, res) => {
+    const logDir = path.resolve(__dirname, "../../logs");
+
+    const latestLogFile = getLatestLogFile(logDir);
+
+    if (!latestLogFile) {
+        res.status(404).json({ error: "No log files found" });
+        return;
+    }
+
+    try {
+        const logs = fs.readFileSync(latestLogFile, "utf8").split("\n").filter(line => line.trim() !== "");
+        res.json({ file: path.basename(latestLogFile), logs });
+    } catch (error) {
+        handleError(res, error as Error);
+    }
+});
 
 // Add Document to collection
 app.post("/:collection", (req, res) => {
@@ -111,3 +141,8 @@ app.delete("/:collection/:id", (req, res) => {
 
 // Server Initialization
 app.listen(PORT, () => logger.info(`STARTED: Server running on port ${PORT}, version ${VERSION}`));
+
+let millisecToMinutes = 1000 * 60;
+setInterval(() => {
+    logger.info(`STATUS Server is fine. Uptime : ${getUptime(STARTTIME)}`)
+}, 5 * millisecToMinutes) // put time in minutes
