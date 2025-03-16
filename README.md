@@ -1,5 +1,7 @@
 # NoSQL Database API
 
+![No SQL](https://raw.githubusercontent.com/Aitaneuh/ts-nosql-db/refs/heads/main/public/android-chrome-192x192.png)
+
 This is a simple API built using Node.js and Express to manage a NoSQL database. It provides CRUD operations for data and the ability to log server activity.
 
 ## Features
