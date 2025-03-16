@@ -5,149 +5,95 @@ import NoSQLDatabase from "../core/Database";
 import logger from "../core/Logger";
 import { getUptime, getLatestLogFile, cleanOldLogs } from "../core/Utils";
 
-// Initialize app, database and logs directory
+// Initialize app, database, and logs directory
 const app = express();
 const db = new NoSQLDatabase("data");
 const logDir = path.resolve(__dirname, "../../logs");
-
 const PORT = 3000;
-logger.info(`STARTING Port configured on ${PORT}`)
-
-// to remember when started
-const STARTTIME = Date.now();
-logger.info(`STARTING Start time set to ${STARTTIME}`)
-
 const VERSION = "1.0";
-logger.info(`STARTING using version ${VERSION}`)
+const STARTTIME = Date.now();
+
+logger.info(`STARTING Server on port ${PORT}, version ${VERSION}`);
+logger.info(`STARTING Start time: ${STARTTIME}`);
 
 app.use(express.json());
-
 app.use(express.static("public"));
 
+// Clean old logs
+cleanOldLogs(logDir);
+logger.info("STARTING Cleaned old log files");
 
-// Function to handle errors more gracefully
-function handleError(res: express.Response, error: Error, statusCode: number = 500) {
-    logger.error(error.message);
-    res.status(statusCode).json({ error: error.message });
+// Middleware to handle errors globally
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    logger.error(err.message);
+    res.status(500).json({ error: err.message });
+});
+
+// Middleware to validate request body for POST and PUT
+function validateRequest(req: express.Request, res: express.Response): boolean {
+    const { id, data } = req.body;
+    if (!id || !data) {
+        res.status(400).json({ error: "Missing 'id' or 'data' in request body" });
+        return false;
+    }
+    return true;
 }
 
-
-cleanOldLogs(logDir);
-logger.info(`STARTING Cleaned old logs files`)
-
-// Get logs
+// Route: Get latest logs
 app.get("/logs", (req, res) => {
     const latestLogFile = getLatestLogFile(logDir);
-
     if (!latestLogFile) {
         res.status(404).json({ error: "No log files found" });
         return;
     }
-
     try {
         const logs = fs.readFileSync(latestLogFile, "utf8").split("\n").filter(line => line.trim() !== "");
         res.json({ file: path.basename(latestLogFile), logs });
     } catch (error) {
-        handleError(res, error as Error);
+        res.status(500).json({ error: "Failed to read log file" });
     }
 });
 
-// Add Document to collection
+// CRUD operations
 app.post("/:collection", (req, res) => {
+    if (!validateRequest(req, res)) return;
+
     const { collection } = req.params;
     const { id, data } = req.body;
-
-    // Basic validation for input
-    if (!id || !data) {
-        res.status(400).json({ error: "Missing 'id' or 'data' in request body" });
-        return;
-    }
-
-    try {
-        db.addDocument(collection, id, data);
-        res.status(201).json({ message: "Successfully added", id });
-    } catch (error) {
-        handleError(res, error as Error);
-    }
+    db.addDocument(collection, id, data);
+    res.status(201).json({ message: "Successfully added", id });
 });
 
-// Get Document by collection and ID
 app.get("/:collection/:id", (req, res) => {
     const { collection, id } = req.params;
-
-    try {
-        const doc = db.getDocument(collection, id);
-        if (doc) {
-            res.json(doc);
-        } else {
-            res.status(404).json({ error: `Document with ID ${id} not found in collection ${collection}` });
-        }
-    } catch (error) {
-        handleError(res, error as Error);
-    }
+    const doc = db.getDocument(collection, id);
+    doc ? res.json(doc) : res.status(404).json({ error: `Document ${id} not found in ${collection}` });
 });
 
-// Example: Get all documents from a collection (just for demonstration)
 app.get("/:collection", (req, res) => {
     const { collection } = req.params;
-
-    try {
-        const docs = db.getCollection(collection);
-        if (docs.length > 0) {
-            res.json(docs);
-        } else {
-            res.status(404).json({ error: `No documents found in collection ${collection}` });
-        }
-    } catch (error) {
-        handleError(res, error as Error);
-    }
+    const docs = db.getCollection(collection);
+    docs.length > 0 ? res.json(docs) : res.status(404).json({ error: `No documents found in ${collection}` });
 });
 
-// Update Document by ID
 app.put("/:collection/:id", (req, res) => {
+    if (!validateRequest(req, res)) return;
+
     const { collection, id } = req.params;
     const { data } = req.body;
-
-    if (!data) {
-        res.status(400).json({ error: "Missing 'data' in request body" });
-        return;
-    }
-
-    try {
-        const updated = db.updateDocument(collection, id, data);
-        if (updated) {
-            res.json({ message: "Document successfully updated" });
-        } else {
-            res.status(404).json({ error: `Document with ID ${id} not found in collection ${collection}` });
-        }
-    } catch (error) {
-        handleError(res, error as Error);
-    }
+    const updated = db.updateDocument(collection, id, data);
+    updated ? res.json({ message: "Successfully updated" }) : res.status(404).json({ error: `Document ${id} not found` });
 });
 
-// Delete Document by ID
 app.delete("/:collection/:id", (req, res) => {
     const { collection, id } = req.params;
-
-    try {
-        const deleted = db.deleteDocument(collection, id);
-        if (deleted) {
-            res.json({ message: "Document successfully deleted" });
-        } else {
-            res.status(404).json({ error: `Document with ID ${id} not found in collection ${collection}` });
-        }
-    } catch (error) {
-        handleError(res, error as Error);
-    }
+    const deleted = db.deleteDocument(collection, id);
+    deleted ? res.json({ message: "Successfully deleted" }) : res.status(404).json({ error: `Document ${id} not found` });
 });
 
-// Server Initialization
+// Start server
 app.listen(PORT, () => logger.info(`STARTED Server running on port ${PORT}, version ${VERSION}`));
 
-let millisecToMinutes = 1000 * 60;
-setInterval(() => {
-    logger.info(`STATUS Server is fine. Uptime : ${getUptime(STARTTIME)}`)
-}, 5 * millisecToMinutes) // put time in minutes
-
-let millisecToDays = 24 * 60 * 60 * 1000;
-setInterval(() => cleanOldLogs(logDir), 1 * millisecToDays);
+// Periodic tasks
+setInterval(() => logger.info(`STATUS Server uptime: ${getUptime(STARTTIME)}`), 5 * 60 * 1000);
+setInterval(() => cleanOldLogs(logDir), 24 * 60 * 60 * 1000);
