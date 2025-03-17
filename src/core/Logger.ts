@@ -2,12 +2,13 @@ import winston from "winston";
 import fs from "fs";
 import path from "path";
 
+const isTestEnv = process.env.NODE_ENV === "test";
+
 const logDir = path.join(__dirname, "../../logs");
 
-if (!fs.existsSync(logDir)) {
+if (!isTestEnv && !fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true });
 }
-
 
 const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 const logFileName = path.join(logDir, `logs-${timestamp}.txt`);
@@ -22,7 +23,7 @@ const logger = winston.createLogger({
     ),
     transports: [
         new winston.transports.Console(),
-        new winston.transports.File({ filename: logFileName })
+        ...(isTestEnv ? [] : [new winston.transports.File({ filename: logFileName })])
     ],
 });
 

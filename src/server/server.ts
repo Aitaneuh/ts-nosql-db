@@ -95,5 +95,5 @@ app.delete("/:collection/:id", (req, res) => {
 app.listen(PORT, () => logger.info(`STARTED Server running on port ${PORT}, version ${VERSION}`));
 
 // Periodic tasks
-setInterval(() => logger.info(`STATUS Server uptime: ${getUptime(STARTTIME)}`), 5 * 60 * 1000);
+setInterval(() => logger.info(`STATUS Server uptime: ${getUptime(STARTTIME)}`), 60 * 60 * 1000);
 setInterval(() => cleanOldLogs(logDir), 24 * 60 * 60 * 1000);
