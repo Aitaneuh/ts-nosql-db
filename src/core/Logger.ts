@@ -11,7 +11,7 @@ if (!isTestEnv && !fs.existsSync(logDir)) {
 }
 
 const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-const logFileName = path.join(logDir, `logs-${timestamp}.txt`);
+const logFileName = path.join(logDir, `logs-${timestamp}.log`);
 
 const logger = winston.createLogger({
     level: "info",

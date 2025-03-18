@@ -42,17 +42,25 @@ function validateRequest(req: express.Request, res: express.Response): boolean {
 // Route: Get latest logs
 app.get("/logs", (req, res) => {
     const latestLogFile = getLatestLogFile(logDir);
+
     if (!latestLogFile) {
-        res.status(404).json({ error: "No log files found" });
+        logger.error("No log files found.");
+        res.status(404).send("No log files found.");
         return;
     }
-    try {
-        const logs = fs.readFileSync(latestLogFile, "utf8").split("\n").filter(line => line.trim() !== "");
-        res.json({ file: path.basename(latestLogFile), logs });
-    } catch (error) {
-        res.status(500).json({ error: "Failed to read log file" });
-    }
+
+    fs.readFile(latestLogFile, "utf8", (err, data) => {
+        if (err) {
+            logger.error(`Error reading log file: ${err}`);
+            res.status(500).send("Unable to retrieve logs.");
+            return;
+        }
+        res.type("text/plain").send(data);
+    });
+
+    logger.info("GET /logs");
 });
+
 
 // CRUD operations
 app.post("/:collection", (req, res) => {
