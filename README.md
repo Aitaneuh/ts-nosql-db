@@ -89,6 +89,30 @@ Delete a specific document by its ID from the collection.
 - Every 5 minutes: Logs the server's uptime.
 - Every 24 hours: Cleans old log files.
 
+## Unit Tests
+
+This project includes unit tests to ensure the correctness of the NoSQL Database API.
+
+### Running Tests
+
+To run the tests, use the following command:
+```bash
+npx jest
+```
+
+### Test Cases
+
+The tests verify the following functionalities:
+
+1. **Adding a document**: Ensures that a document is correctly added to a collection.
+2. **Retrieving a document**: Ensures that an existing document can be retrieved successfully.
+3. **Updating a document**: Checks that a document's data can be updated correctly.
+4. **Verifying an update**: Confirms that the document reflects the updated values.
+5. **Deleting a document**: Ensures that a document can be deleted.
+6. **Handling deleted documents**: Checks that trying to retrieve a deleted document returns a 404 error.
+7. **Validation errors**: Ensures that creating a document without an ID returns a 400 error.
+
 ## Contributions
 
 Contributions are welcome! Feel free to submit pull requests to improve the project or add new features.
+
