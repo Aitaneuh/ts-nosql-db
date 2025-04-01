@@ -5,7 +5,6 @@ import NoSQLDatabase from "../core/Database";
 import logger from "../core/Logger";
 import { getUptime, getLatestLogFile, cleanOldLogs } from "../core/Utils";
 
-// Initialize app, database, and logs directory
 const app = express();
 const db = new NoSQLDatabase("data");
 const logDir = path.resolve(__dirname, "../../logs");
